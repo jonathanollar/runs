@@ -4,13 +4,15 @@ class Node(object):
 		self._children = []
 		self._parent = parent
 		self._type = 'NODE'
-		
+
 		if parent is not None:
 			parent.addChild(self)
-		
+		else:
+			self._type = 'ROOT'
+
 	def typeInfo(self):
 		return self._type
-	
+
 	def addChild(self, child):
 		self._children.append(child)
 		child._parent = self
@@ -18,73 +20,79 @@ class Node(object):
 	def insertChild(self, position, child):
 		if position < 0 or position > len(self._children):
 			return False
-			
+
 		self._children.insert(position, child)
-		child._parent = self		
-		
+		child._parent = self
+
 		return True
-	
+
 	def removeChild(self, position):
 		if position < 0 or position > len(self._children):
 			return False
-			
+
 		child = self._children.pop(position)
 		child._parent = None
 		return True
-	
+
 	def name():
 		def fget(self): return self._name
 		def fset(self, value): self._name = value
 		return locals()
 	name = property(**name())
-		
+
 	def child(self, row):
 		return self._children[row]
-		
+
 	def childCount(self):
 		return len(self._children)
-		
+
 	def parent(self):
 		return self._parent
-		
+
 	def row(self):
 		if self._parent is not None:
 			return self._parent._children.index(self)
-			
+
+	def isRoot(self):
+		if self._parent is None:
+			return True
+		else:
+			return False
+
 	def log(self, tabLevel=-1):
 		output = ""
 		tabLevel += 1
-		
+
 		for i in range(tabLevel):
 			output += "\t"
-			
-		output += "|-----" + self._name + "\n"
-		
+
+		output += "|-----" + self._name + '(' + self._type + ')' + "\n"
+
 		for child in self._children:
 			output += child.log(tabLevel)
-		
+
 		tabLevel -= 1
 		output += "\n"
-		
+
 		return output
 
 	def serialise_children(self):
 		output = ""
 		output += str(self.row())
-		
+
 		if self.childCount() > 0:
 			output += ":"
 
 			for child in self._children:
 				output += child.serialise_children()
 				output += ","
-		
+
 		return output
 
 	def data(self, column):
 		if   column is 0: return self.name
 		elif column is 1: return self.typeInfo()
-		elif column is 2: 
+		elif column is 2:
 			if self.parent():
 				return self.parent().name
 			else:
@@ -97,9 +105,14 @@ class Node(object):
 
 	def resource(self):
 		return None
-		
+
 	def __repr__(self):
 		return self.log()
+
+class RootNode(Node):
+	def __init__(self, name, parent=None):
+		super(RootNode, self).__init__(name, parent)
+		self._type = 'ROOT'
 
 class ProjectNode(Node):
 	def __init__(self, name, parent=None):
@@ -160,7 +173,7 @@ class RunNode(Node):
 
 	def resource(self):
 		return None
-	
+
 	def light():
 		def fget(self): return self._light
 		def fset(self, value): self._light = value
@@ -186,7 +199,7 @@ class NVHRunNode(RunNode):
 
 	def resource(self):
 		return None
-	
+
 	def light():
 		def fget(self): return self._light
 		def fset(self, value): self._light = value
@@ -212,10 +225,9 @@ class CrashRunNode(RunNode):
 
 	def resource(self):
 		return None
-	
+
 	def light():
 		def fget(self): return self._light
 		def fset(self, value): self._light = value
 		return locals()
 	light = property(**light())
-

@@ -8,7 +8,7 @@ import sys
 #import numpy as np
 #import pandas as pd
 #import random
-#import pickle 
+#import pickle
 #import subprocess
 #import datetime
 
@@ -37,7 +37,7 @@ class WnDTest(main_base, main_form):
 	def __init__(self, parent=None):
 		super(main_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		### HARD CODED NODE DATA ###
 		self.rootNode   = Node("ROOT")
 		projectNode1 = ProjectNode("F164",self.rootNode)
@@ -54,10 +54,10 @@ class WnDTest(main_base, main_form):
 		runNode3 = CrashRunNode("R006a",versionNode2)
 		runNode4 = CrashRunNode("R006a",runNode2)
 		runNode5 = CrashRunNode("R006a",runNode4)
-		
+
 		# SET TREE MODEL AND SPECS
 		self._treemodel = treeModel(self.rootNode)
-		
+
 		# SET PROXYMODEL AND SPECS
 		self._proxyModel = QtCore.QSortFilterProxyModel()
 		self._proxyModel.setSourceModel(self._treemodel)
@@ -66,7 +66,7 @@ class WnDTest(main_base, main_form):
 		self._proxyModel.setSortRole(treeModel.sortRole)
 		self._proxyModel.setFilterRole(treeModel.filterRole)
 		self._proxyModel.setFilterKeyColumn(0)
-		
+
 		# TREE VIEW
 		self.uiTree.setAlternatingRowColors(True)
 		self.uiTree.setModel(self._proxyModel)
@@ -82,20 +82,20 @@ class WnDTest(main_base, main_form):
 
 		# FILTERING OF RUNS
 		self.uiFilter.textChanged.connect(self._proxyModel.setFilterRegExp)
-		
+
 		# ADD PROPERTY EDITOR
 		self._propEditor = PropertiesEditor(self)
 		self._propEditor.setModel(self._proxyModel)
 
 		# ADD PROPERTY EDITOR TO MAIN LAYOUT
 		self.layout_main.addWidget(self._propEditor)
-		
+
 		# CONNECT TREE SELECTION MODEL TO PROPERTIES EDITOR
 		self.uiTree.selectionModel().currentChanged.connect(self._propEditor.setSelection)
 
 		# PRINT NODE STRUCTURE TO CONSOLE
 		# print(rootNode)
-				
+
 		#child = Node("test")
 		#self.rootNode.insertChild(1, child)
 		#self.rootNode.insertChild(2, child)
@@ -103,7 +103,7 @@ class WnDTest(main_base, main_form):
 
 	def on_tree_rightclick(self,point):
 		print(self.rootNode)
-	
+
 		indexes = self.uiTree.selectedIndexes()
 		nodes = []
 		#for index in indexes:
@@ -114,7 +114,7 @@ class WnDTest(main_base, main_form):
 			node = self._treemodel.getNode(source_index)
 			node_type = node.typeInfo()
 			parent_type = node.parent().typeInfo()
-		
+
 		# CREATE MENU
 		self.menu = QMenu(self)
 
@@ -141,7 +141,7 @@ class WnDTest(main_base, main_form):
 			delstring = 'Delete '+str(node_type)
 			del_node_action = QAction(delstring, self)
 			del_node_action.triggered.connect(lambda: self._treemodel.removeRows(source_index.row(), 1, source_index.parent()))
-			self.menu.addAction(del_node_action)			
+			self.menu.addAction(del_node_action)
 		self.menu.popup(QtGui.QCursor.pos())
 
 # PROPERTIES EDITOR
@@ -149,30 +149,30 @@ class PropertiesEditor(prop_base, prop_form):
 	def __init__(self, parent=None):
 		super(prop_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
-		
+
 		self._nodeEditor = NodeEditor(self)
 		self._projectEditor = ProjectEditor(self)
 		self._versionEditor = VersionEditor(self)
 		self._runsEditor = RunsEditor(self)
 		self._nvhRunsEditor = NVHRunsEditor(self)
 		self._crashRunsEditor = CrashRunsEditor(self)
-		
+
 		self.layout_nodes.addWidget(self._nodeEditor)
 		self.layout_specs.addWidget(self._projectEditor)
 		self.layout_specs.addWidget(self._versionEditor)
 		self.layout_specs.addWidget(self._runsEditor)
 		self.layout_specs.addWidget(self._nvhRunsEditor)
 		self.layout_specs.addWidget(self._crashRunsEditor)
-		
+
 		self._nodeEditor.setVisible(True)
 		self._projectEditor.setVisible(False)
 		self._versionEditor.setVisible(False)
 		self._runsEditor.setVisible(False)
 		self._nvhRunsEditor.setVisible(False)
 		self._crashRunsEditor.setVisible(False)
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._nodeEditor.setModel(proxyModel)
@@ -181,12 +181,12 @@ class PropertiesEditor(prop_base, prop_form):
 		self._runsEditor.setModel(proxyModel)
 		self._nvhRunsEditor.setModel(proxyModel)
 		self._crashRunsEditor.setModel(proxyModel)
-		
+
 	def setSelection(self, current):
 		current = self._proxyModel.mapToSource(current)
-		
+
 		node = current.internalPointer()
-		
+
 		if node is not None:
 			typeInfo = node.typeInfo()
 
@@ -197,7 +197,7 @@ class PropertiesEditor(prop_base, prop_form):
 			self._runsEditor.setVisible(False)
 			self._nvhRunsEditor.setVisible(False)
 			self._crashRunsEditor.setVisible(False)
-			
+
 			# VARIABLE
 			if typeInfo == "project":
 				self._projectEditor.setVisible(True)
@@ -209,7 +209,7 @@ class PropertiesEditor(prop_base, prop_form):
 			elif typeInfo == "crash_run":
 				self._runsEditor.setVisible(True)
 				self._crashRunsEditor.setVisible(True)
-			
+
 			self._nodeEditor.setSelection(current)
 			self._projectEditor.setSelection(current)
 			self._versionEditor.setSelection(current)
@@ -222,64 +222,64 @@ class NodeEditor(node_base, node_form):
 	def __init__(self, parent=None):
 		super(node_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
-		
+
 		self._dataMapper.addMapping(self.ui_name, 0)
 		self._dataMapper.addMapping(self.ui_type, 1)
-	
-	def setSelection(self, current): 
+
+	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
-		
+
 # PROJECT EDITOR
 class ProjectEditor(project_base, project_form):
 	def __init__(self, parent=None):
 		super(project_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
-		
+
 		#self._dataMapper.addMapping(self.ui_light, 2)
 		#self._dataMapper.addMapping(self.ui_near, 3)
 		#self._dataMapper.addMapping(self.ui_far, 4)
 		#self._dataMapper.addMapping(self.ui_shadows, 5)
 
 		#self.ui_shadows.stateChanged.connect(self._dataMapper.submit)
-	
-	def setSelection(self, current): 
+
+	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
-		
+
 # VERSION EDITOR
 class VersionEditor(version_base, version_form):
 	def __init__(self, parent=None):
 		super(version_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
-		
+
 		#self._dataMapper.addMapping(self.ui_blur, 2)
 		#self._dataMapper.addMapping(self.ui_shake, 3)
-	
-	def setSelection(self, current): 
+
+	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
@@ -289,18 +289,18 @@ class RunsEditor(runs_base, runs_form):
 	def __init__(self, parent=None):
 		super(runs_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
-		
+
 		#self._dataMapper.addMapping(self.ui_blur, 2)
 		#self._dataMapper.addMapping(self.ui_shake, 3)
-	
-	def setSelection(self, current): 
+
+	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
@@ -310,18 +310,18 @@ class NVHRunsEditor(nvh_runs_base, nvh_runs_form):
 	def __init__(self, parent=None):
 		super(nvh_runs_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
-		
+
 		#self._dataMapper.addMapping(self.ui_blur, 2)
 		#self._dataMapper.addMapping(self.ui_shake, 3)
-	
-	def setSelection(self, current): 
+
+	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
@@ -331,19 +331,19 @@ class CrashRunsEditor(crash_runs_base,crash_runs_form):
 	def __init__(self, parent=None):
 		super(crash_runs_base, self).__init__(parent)
 		self.setupUi(self)
-		
+
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
-		
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
-		
+
 		#self._dataMapper.addMapping(self.ui_blur, 2)
 		#self._dataMapper.addMapping(self.ui_shake, 3)
 		#self._dataMapper.addMapping(self.ui_shake, 3, 'currentIndex')
-	
-	def setSelection(self, current): 
+
+	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
@@ -353,7 +353,7 @@ if __name__ == '__main__':
 		app.setStyle("cleanlooks")
 		wnd = WnDTest()
 		wnd.show()
-		
+
 		sys.exit(app.exec_())
 
 		#app = QApplication(sys.argv)
