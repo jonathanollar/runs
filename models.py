@@ -11,6 +11,7 @@ class treeModel(QtCore.QAbstractItemModel):
 	def __init__(self, root, parent=None):
 		super(treeModel, self).__init__(parent)
 		self._rootNode = root
+		self.mimetype = 'move_run_node'
 
 	def rowCount(self,parent=QtCore.QModelIndex()):
 		if parent.isValid():
@@ -145,35 +146,69 @@ class treeModel(QtCore.QAbstractItemModel):
 
 		# mimeData
 		mimeData = QtCore.QMimeData()
-		mimeData.setText(text)
+		ba = QtCore.QByteArray()
+		ba.append(text)
+		mimeData.setData(self.mimetype,ba)
+		#mimeData.setText()
 		return mimeData
 
-	def dropMimeData(self, data, action, new_row, new_column, new_parent_index=QtCore.QModelIndex()):
-		if action == QtCore.Qt.IgnoreAction:
-			return True
+	def getChildIndexFromMimeData(self,data):
+		if data.hasFormat(self.mimetype):
+			ba = data.data(self.mimetype)
 
 		# Get data from mimeData
-		if data.hasText():
-			text = data.text()
+		if data.hasFormat(self.mimetype):
+			text = ba.data().decode('utf8')
+		else:
+			return None
+
+		if text is not "0":
 			row_list = text.split(",")
 			child_index = QtCore.QModelIndex() # root
 			for row_str in reversed(row_list):
 				parent_index = child_index
 				row = int(row_str)
 				child_index = self.index(row, 0, parent_index)
+			return child_index
+		else:
+			return None
 
-		# Get child node
+	def	canDropMimeData(self, data, action, new_row, new_column, new_parent_index=QtCore.QModelIndex()):
+		if action == QtCore.Qt.IgnoreAction:
+			return True
+
+		# Get child
+		child_index = self.getChildIndexFromMimeData(data)
+		if child_index:
+			child = self.getNode(child_index)
+			child_type = child.typeInfo()
+
+			# Get new parent node
+			new_parent = self.getNode(new_parent_index)
+			new_parent_type = new_parent.typeInfo()
+
+			# Illegal places to drop returns False
+			print(new_parent.isRoot(),child_type,new_parent_type)
+			if new_parent.isRoot(): return False
+			if child_type is 'project': return False
+			if new_parent_type is not 'project' and new_parent_type is not 'version': return False
+
+			return True
+		else:
+			return False
+
+	def dropMimeData(self, data, action, new_row, new_column, new_parent_index=QtCore.QModelIndex()):
+		if action == QtCore.Qt.IgnoreAction:
+			return True
+
+		# Get child
+		child_index = self.getChildIndexFromMimeData(data)
 		child = self.getNode(child_index)
 		child_type = child.typeInfo()
 
 		# Get new parent node
 		new_parent = self.getNode(new_parent_index)
 		new_parent_type = new_parent.typeInfo()
-
-		# Illegal places to drop returns False
-		if new_parent.isRoot(): return False
-		if child_type is 'project': return False
-		if new_parent_type is not 'project' and new_parent_type is not 'version': return False
 
 		# Make copy of child node (old one will be deleted automatically)
 		new_child = deepcopy(child)
@@ -187,6 +222,7 @@ class treeModel(QtCore.QAbstractItemModel):
 		new_parent.insertChild(new_row, new_child)
 		self.endInsertRows()
 
+		# Drop successful returns True
 		return True
 
 # CLASS FOR DESELECTABLE TREE VIEW (NOT CURRENTLY USED)

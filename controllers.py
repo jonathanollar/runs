@@ -52,8 +52,8 @@ class WnDTest(main_base, main_form):
 		runNode1 = NVHRunNode("R000",versionNode2)
 		runNode2 = NVHRunNode("R001",versionNode2)
 		runNode3 = CrashRunNode("R006a",versionNode2)
-		runNode4 = CrashRunNode("R006a",runNode2)
-		runNode5 = CrashRunNode("R006a",runNode4)
+		runNode4 = CrashRunNode("R006b",versionNode2)
+		runNode5 = CrashRunNode("R006c",versionNode2)
 
 		# SET TREE MODEL AND SPECS
 		self._treemodel = treeModel(self.rootNode)
