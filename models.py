@@ -4,12 +4,12 @@ from PyQt5.QtWidgets import *
 from data import *
 from copy import deepcopy
 
-class treeModel(QtCore.QAbstractItemModel):
+class RunTreeModel(QtCore.QAbstractItemModel):
 	sortRole = QtCore.Qt.UserRole
 	filterRole = QtCore.Qt.UserRole + 1
 
 	def __init__(self, root, parent=None):
-		super(treeModel, self).__init__(parent)
+		super().__init__(parent)
 		self._rootNode = root
 		self.mimetype = 'move_run_node'
 
@@ -44,10 +44,10 @@ class treeModel(QtCore.QAbstractItemModel):
 				resource = node.resource()
 				return QtGui.QIcon(QtGui.QPixmap(resource))
 
-		elif role == treeModel.sortRole:
+		elif role == RunTreeModel.sortRole:
 			return node.name
 
-		elif role == treeModel.filterRole:
+		elif role == RunTreeModel.filterRole:
 			return node.name
 
 	def setData(self, index, value, role=QtCore.Qt.EditRole):
@@ -225,8 +225,81 @@ class treeModel(QtCore.QAbstractItemModel):
 		# Drop successful returns True
 		return True
 
-# CLASS FOR DESELECTABLE TREE VIEW (NOT CURRENTLY USED)
-class DeselectableTreeView(QTreeView):
-    def mousePressEvent(self, event):
-        self.clearSelection()
-        QtGui.QTreeView.mousePressEvent(self, event)
+class RunTreeProxyModel(QtCore.QSortFilterProxyModel):
+
+	def __init__(self, source_model, parent=None):
+		super().__init__()
+		self.source_model = source_model
+		self.setSourceModel(self.source_model)
+		self.setDynamicSortFilter(True)
+		self.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
+		self.setSortRole(self.source_model.sortRole)
+		self.setFilterRole(self.source_model.filterRole)
+		self.setFilterKeyColumn(0)
+
+class RunTreeView(QTreeView):
+
+	def __init__(self, proxy_model, parent=None):
+		super().__init__()
+
+		self.proxy_model = proxy_model
+		self.source_model = proxy_model.sourceModel()
+
+		self.setModel(self.proxy_model)
+		self.setAlternatingRowColors(True)
+		self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		self.customContextMenuRequested.connect(self.on_tree_rightclick)
+		self.setAlternatingRowColors(True)
+		#self.setSortingEnabled(True)
+		#self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+		self.setAcceptDrops(True)
+		self.setDropIndicatorShown(True)
+		self.setDragDropMode(QAbstractItemView.InternalMove)
+
+	def mousePressEvent(self, event):
+		self.clearSelection()
+		QTreeView.mousePressEvent(self, event)
+
+	def on_tree_rightclick(self,point):
+		indexes = self.selectedIndexes()
+		nodes = []
+		#for index in indexes:
+		if indexes:
+			index = indexes[0] # only single selection allowed
+			proxy_model = index.model()
+			source_model = proxy_model.sourceModel()
+			source_index = proxy_model.mapToSource(index)
+			node = source_model.getNode(source_index)
+			node_type = node.typeInfo()
+			parent_type = node.parent().typeInfo()
+			print('name=',node.name)
+
+		# CREATE MENU
+		self.menu = QMenu(self)
+
+		# ITEMS ALWAYS PRESENT
+		add_project_action = QAction('Add project', self)
+		add_project_action.triggered.connect(lambda: self.source_model.add_node(self.source_model.rowCount(), 'project'))
+		self.menu.addAction(add_project_action)
+
+		# ITEMS ONLY PRESENT IF SELECTION
+		if indexes:
+			# ADD NODE
+			if node_type is 'project' or node_type is 'version':
+				add_version_action = QAction('Add version', self)
+				add_version_action.triggered.connect(lambda: self.source_model.add_node(self.source_model.rowCount(source_index), 'version', source_index))
+				self.menu.addAction(add_version_action)
+			if node_type is 'version':
+				add_run_action = QAction('Add NVH run', self)
+				add_run_action.triggered.connect(lambda: self.source_model.add_node(self.source_model.rowCount(source_index), 'nvh_run', source_index))
+				self.menu.addAction(add_run_action)
+
+
+			# DEL NODE
+			delstring = 'Delete '+str(node_type)
+			del_node_action = QAction(delstring, self)
+			del_node_action.triggered.connect(lambda: source_model.removeRows(source_index.row(), 1, source_index.parent()))
+			self.menu.addAction(del_node_action)
+
+		# SHOW MENU
+		self.menu.popup(QtGui.QCursor.pos())
