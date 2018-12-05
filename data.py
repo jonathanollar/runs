@@ -118,6 +118,7 @@ class ProjectNode(Node):
 	def __init__(self, name, parent=None):
 		super(ProjectNode, self).__init__(name, parent)
 		self._type = 'project'
+		self._dir = ''
 
 	def data(self, column):
 		r = super(ProjectNode, self).data(column)

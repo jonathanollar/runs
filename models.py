@@ -129,7 +129,8 @@ class RunTreeModel(QtCore.QAbstractItemModel):
 
 	def mimeTypes(self):
 		types = []
-		types.append('text/plain')
+		#types.append('text/plain')
+		types.append(self.mimetype)
 		return types
 
 	def mimeData(self, index):
@@ -188,7 +189,6 @@ class RunTreeModel(QtCore.QAbstractItemModel):
 			new_parent_type = new_parent.typeInfo()
 
 			# Illegal places to drop returns False
-			print(new_parent.isRoot(),child_type,new_parent_type)
 			if new_parent.isRoot(): return False
 			if child_type is 'project': return False
 			if new_parent_type is not 'project' and new_parent_type is not 'version': return False

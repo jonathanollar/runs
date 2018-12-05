@@ -66,7 +66,6 @@ class Application(tabs_base, tabs_form):
 		self._run_propeditor.setModel(self._run_proxy_model)
 		self._runs_tab_layout.addWidget(self._run_propeditor)
 
-
 		# ADD PROPERTY EDITOR
 
 		# CONNECT TREE SELECTION MODEL TO PROPERTIES EDITOR
