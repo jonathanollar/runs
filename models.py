@@ -19,6 +19,9 @@ class RunTreeModel(QtCore.QAbstractItemModel):
 		else:
 			parentNode = self._rootNode
 
+		#if isinstance(parentNode,VersionNode):
+		#	return 0
+
 		return parentNode.childCount()
 
 	def columnCount(self,parent):
@@ -66,7 +69,7 @@ class RunTreeModel(QtCore.QAbstractItemModel):
 			elif section == 1:
 				return "Type"
 			elif section == 2:
-				return "Parent"
+				return "Directory"
 
 	def parent(self, index):
 		node = self.getNode(index)
@@ -84,7 +87,7 @@ class RunTreeModel(QtCore.QAbstractItemModel):
 		else:
 			return QtCore.QModelIndex()
 
-	def getNode(self, index):
+	def getNode(self, index=QtCore.QModelIndex()):
 		if index.isValid():
 			node = index.internalPointer()
 			if node:
@@ -92,21 +95,20 @@ class RunTreeModel(QtCore.QAbstractItemModel):
 
 		return self._rootNode
 
-	def add_node(self, position, type, parent=QtCore.QModelIndex()):
-		parentNode = self.getNode(parent)
-		self.beginInsertRows(parent, position, position)
+	def add_node(self, type, parentIndex=QtCore.QModelIndex()):
+		parent = self.getNode(parentIndex)
+		position = self.rowCount(parentIndex)
+		self.beginInsertRows(parentIndex, position, position)
 
-		childCount = parentNode.childCount()
+		childCount = parent.childCount()
+		if type is 'project': childNode = ProjectNode(parent=parent)
+		if type is 'version': childNode = VersionNode(parent=parent)
+		if type is 'run': childNode = RunNode(parent=parent)
+		if type is 'nvh_run': childNode = NVHRunNode(parent=parent)
+		if type is 'crash_run': childNode = CrashRunNode(parent=parent)
 
-		if type is 'project': childNode = ProjectNode("New project")
-		if type is 'version': childNode = VersionNode("New version")
-		if type is 'run': childNode = RunNode("New run")
-		if type is 'nvh_run': childNode = NVHRunNode("New NVH run")
-		if type is 'crash_run': childNode = CrashRunNode("New Crash run")
-
-		success = parentNode.insertChild(position, childNode)
 		self.endInsertRows()
-		return success
+		return childNode
 
 	def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
 		parentNode = self.getNode(parent)
@@ -245,7 +247,7 @@ class RunTreeView(QTreeView):
 		self.proxy_model = proxy_model
 		self.source_model = proxy_model.sourceModel()
 
-		self.setModel(self.proxy_model)
+		self.setModel(proxy_model)
 		self.setAlternatingRowColors(True)
 		self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		self.customContextMenuRequested.connect(self.on_tree_rightclick)
@@ -260,45 +262,53 @@ class RunTreeView(QTreeView):
 		self.clearSelection()
 		QTreeView.mousePressEvent(self, event)
 
-	def on_tree_rightclick(self,point):
+	def add_node(self,type,source_index=QtCore.QModelIndex()):
+		# ADD NEW NODE TO SOURCE MODEL
+		new_node = self.source_model.add_node(type, source_index)
+
+		# GET INDEX OF NEW NODE
+		new_index = self.source_model.index(new_node.row(), 0, source_index)
+		idx = self.proxy_model.mapFromSource(new_index)
+
+		# TRIGGER EDIT EVENT ON NEW NODE
+		self.setCurrentIndex(idx)
+		self.edit(idx)
+
+	def on_tree_rightclick(self):
+		# FIND SELECTED INDICES
 		indexes = self.selectedIndexes()
-		nodes = []
-		#for index in indexes:
 		if indexes:
 			index = indexes[0] # only single selection allowed
-			proxy_model = index.model()
-			source_model = proxy_model.sourceModel()
-			source_index = proxy_model.mapToSource(index)
-			node = source_model.getNode(source_index)
+			source_index = self.proxy_model.mapToSource(index)
+			node = self.source_model.getNode(source_index)
 			node_type = node.typeInfo()
-			parent_type = node.parent().typeInfo()
-			print('name=',node.name)
+		else:
+			node = self.source_model.getNode()
+			node_type = node.typeInfo()
 
 		# CREATE MENU
 		self.menu = QMenu(self)
 
 		# ITEMS ALWAYS PRESENT
 		add_project_action = QAction('Add project', self)
-		add_project_action.triggered.connect(lambda: self.source_model.add_node(self.source_model.rowCount(), 'project'))
+		add_project_action.triggered.connect(lambda: self.add_node('project'))
 		self.menu.addAction(add_project_action)
 
 		# ITEMS ONLY PRESENT IF SELECTION
 		if indexes:
-			# ADD NODE
-			if node_type is 'project' or node_type is 'version':
-				add_version_action = QAction('Add version', self)
-				add_version_action.triggered.connect(lambda: self.source_model.add_node(self.source_model.rowCount(source_index), 'version', source_index))
-				self.menu.addAction(add_version_action)
-			if node_type is 'version':
-				add_run_action = QAction('Add NVH run', self)
-				add_run_action.triggered.connect(lambda: self.source_model.add_node(self.source_model.rowCount(source_index), 'nvh_run', source_index))
-				self.menu.addAction(add_run_action)
-
+			add_action = {}
+			types = node._allowed_children
+			for i,type in enumerate(types):
+				add_action[i] = QAction('Add '+types[i], self)
+				#add_action[i].triggered.connect(lambda state, t=types[i]: self.source_model.add_node(t, source_index))
+				add_action[i].triggered.connect(lambda state, t=types[i]: self.add_node(t, source_index))
+				self.menu.addAction(add_action[i])
 
 			# DEL NODE
 			delstring = 'Delete '+str(node_type)
 			del_node_action = QAction(delstring, self)
-			del_node_action.triggered.connect(lambda: source_model.removeRows(source_index.row(), 1, source_index.parent()))
+			del_node_action.triggered.connect(lambda: self.source_model.removeRows(source_index.row(), 1, source_index.parent()))
+
 			self.menu.addAction(del_node_action)
 
 		# SHOW MENU

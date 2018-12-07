@@ -49,11 +49,11 @@ class Application(tabs_base, tabs_form):
 		versionNode1 = VersionNode("V0",projectNode2)
 		versionNode2 = VersionNode("V1",projectNode2)
 		versionNode3 = VersionNode("V2",projectNode2)
-		runNode1 = NVHRunNode("R000",versionNode2)
-		runNode2 = NVHRunNode("R001",versionNode2)
-		runNode3 = CrashRunNode("R006a",versionNode2)
-		runNode4 = CrashRunNode("R006b",versionNode2)
-		runNode5 = CrashRunNode("R006c",versionNode2)
+		#runNode1 = NVHRunNode("R000",versionNode2)
+		#runNode2 = NVHRunNode("R001",versionNode2)
+		#runNode3 = CrashRunNode("R006a",versionNode2)
+		#runNode4 = CrashRunNode("R006b",versionNode2)
+		#runNode5 = CrashRunNode("R006c",versionNode2)
 
 		# TREE VIEW + MODELS
 		self._run_tree_model = RunTreeModel(self.rootNode)
@@ -179,21 +179,27 @@ class ProjectEditor(project_base, project_form):
 		self._proxyModel = None
 		self._dataMapper = QDataWidgetMapper()
 
+		# BIND BUTTON TO BROWSE DIR
+		self.proj_dir_browse.clicked.connect(self.browse_dir)
+
 	def setModel(self, proxyModel):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
 
-		#self._dataMapper.addMapping(self.ui_light, 2)
-		#self._dataMapper.addMapping(self.ui_near, 3)
-		#self._dataMapper.addMapping(self.ui_far, 4)
-		#self._dataMapper.addMapping(self.ui_shadows, 5)
-
-		#self.ui_shadows.stateChanged.connect(self._dataMapper.submit)
+		self._dataMapper.addMapping(self.proj_dir, 2)
+		self.proj_dir.textChanged.connect(self._dataMapper.submit)
 
 	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
+
+	def browse_dir(self):
+		dir = QFileDialog.getExistingDirectory(None, 'Select a folder:', "", QFileDialog.ShowDirsOnly)
+		if dir:
+			self.proj_dir.setText(dir)
+
+
 
 # VERSION EDITOR
 class VersionEditor(version_base, version_form):
@@ -208,13 +214,19 @@ class VersionEditor(version_base, version_form):
 		self._proxyModel = proxyModel
 		self._dataMapper.setModel(proxyModel.sourceModel())
 
-		#self._dataMapper.addMapping(self.ui_blur, 2)
-		#self._dataMapper.addMapping(self.ui_shake, 3)
+		self._dataMapper.addMapping(self.version_dir, 2)
+		self.version_dir.textChanged.connect(self._dataMapper.submit)
 
 	def setSelection(self, current):
 		parent = current.parent()
 		self._dataMapper.setRootIndex(parent)
 		self._dataMapper.setCurrentModelIndex(current)
+
+
+	def browse_dir(self):
+		dir = QFileDialog.getExistingDirectory(None, 'Select a folder:', "", QFileDialog.ShowDirsOnly)
+		if dir:
+			self.version_dir.setText(dir)
 
 # RUNS EDITOR
 class RunsEditor(runs_base, runs_form):
